@@ -188,7 +188,7 @@ class DatabaseHelper
         return $part;
     }
 
-    public static function insertImage($file_path,$file_name,$mine_type,$size): array {
+    public static function insertImage($file_path,$file_name,$mine_type,$size,$shared_url,$delete_url): array {
         
         $db = new MySQLWrapper();
 
@@ -205,7 +205,7 @@ class DatabaseHelper
         $date=date("Y/m/d H:i:s", strtotime("1 month"));
         $view_count = 0; // ビューカウントの初期値
         // バインドパラメータ
-        $stmt->bind_param("sssssssss", $title,$file_path,$file_name,$random_string, $random_string2,$view_count,$mine_type,$date,$size);
+        $stmt->bind_param("sssssssss", $title,$file_path,$file_name,$shared_url, $delete_url,$view_count,$mine_type,$date,$size);
         $stmt->execute();
 
 
@@ -216,4 +216,18 @@ class DatabaseHelper
 
         return $snippet;
     }
-}               
+
+    public static function getImageData(string $shared_url): Array | false{
+        $mysqli = new MySQLWrapper();
+        $stmt = $mysqli->prepare("SELECT file_path, mine_type ,view_count FROM images WHERE url = ?");
+        $stmt->bind_param('s', $shared_url);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc();
+
+        if (!$data) return false;
+
+        return $data;
+
+    }     
+}

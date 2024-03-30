@@ -9,19 +9,25 @@ $DEBUG = true;
 $routes = include('Routing/routes.php');
 // リクエストURIを解析してパスだけを取得します。
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$path2 = explode('/', $path)[1];
+$method = $_SERVER['REQUEST_METHOD'];
 $path = ltrim($path, '/');//指定した文字を先頭からのみ消す
 
-$path2= explode('/',$path)[1];//指定文字で区切る。連想配列にする。
-$method= $SERVER['REQUEST_METHOD'];
+if($path2 == 'png' || $path2 == 'jpeg' || $path2 == 'gif'){
+    $path = 'getImage';
+}
+//$path2= explode('/',$path)[1];//指定文字で区切る。連想配列にする。
+//$method= $SERVER['REQUEST_METHOD'];
 
-if (preg_match('/\.(?:png|jpg|jpeg|gif|css|js)$/', $path)) {
+if (preg_match('/\.(?:png|jpg|jpeg|gif|css|js|svg)$/', $path)) {
     // パスにマッチする静的ファイルが存在するかチェック
-    printf(__DIR__);
+    $file=__DIR__.'/'.$path;
     if (file_exists(__DIR__ . '/' . $path)) {
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($path);
+        $mineType=mime_content_type($file);
+        $finfo = new finfo();
+        $mimeType = $finfo->file($path,FILEINFO_MIME_TYPE);
         header("Content-Type: " . $mimeType);
-        readfile(__DIR__ . '/' . $path);
+        readfile($path);
         return;
     } else {
         // ファイルが存在しない場合は404

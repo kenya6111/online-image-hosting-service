@@ -27,61 +27,105 @@ return [
 
         return new HTMLRenderer('new-image', []);
     },
-    'register' => function (): HTMLRenderer {
-        // スニペットの登録→表示ページへ遷移
-
-        //登録するスニペットのバリデーション
-        // $titleRes = ValidationHelper::validateText($_POST['title'] ?? null,1,100);
-
-        // $textRes = ValidationHelper::validateText($_POST['text'] ?? null,1,1000);
-
-        // $syntaxRes = ValidationHelper::validateSyntax($_POST['syntax'] ?? null);
-
-        // $expireRes = ValidationHelper::validateExpireDatetime($_POST['expire'] ?? null);
-        // if (count($textRes["error"]) > 0 || count($syntaxRes["error"]) > 0 || count($expireRes["error"]) > 0) {
-        //     $allErrors = array_merge($textRes["error"], $syntaxRes["error"], $expireRes["error"]);
-        //     //全てのエラーをスニペット作成ページに引き渡す
-        // return new HTMLRenderer('new-snippet', ['errors'=>$allErrors]);
-
-        // }
-
+    'register' => function (): JSONRenderer {
+        
         // エラーがなかった場合、スニペットをテーブルに登録
         // urlを生成する
         try{
+            $tmpPath = $_FILES['file1']['tmp_name'];
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($tmpPath);
+            $byteSize = filesize($tmpPath);
+
+            $ipAddress = $_SERVER['REMOTE_ADDR'];
              /* 拡張子情報の取得・セット */
              $imginfo = getimagesize($_FILES['file1']['tmp_name']);
             if($imginfo['mime'] == 'image/jpeg'){ $extension = ".jpg"; }
             if($imginfo['mime'] == 'image/png'){ $extension = ".png"; }
             if($imginfo['mime'] == 'image/gif'){ $extension = ".gif"; }
-            
+
+            $extension = explode('/', $mime)[1];
+
+            $filename = hash('sha256', uniqid(mt_rand(), true)) . '.' . $extension;
+            $uploadDir =   './uploads/'; 
+            $subdirectory = substr($filename, 0, 2);
+            $imagePath = $uploadDir .  $subdirectory. '/' . $filename;
+            // アップロード先のディレクトリがない場合は作成
+            if(!is_dir(dirname($imagePath))){
+                mkdir(dirname($imagePath),0777,true);
+                chmod(dirname($imagePath), 0775);
+            }
+            // $imagesDir =   './images/';
+            // $svgfilename = 'checkmark.svg';
+            // chmod(dirname($imagesDir.$svgfilename), 0775);
+
+            // アップロードにした場合は失敗のメッセージを送る
+            if(move_uploaded_file($tmpPath, $imagePath)){
+                chmod($imagePath, 0664);
+            }else{
+                return new JSONRenderer(['success' => false, 'message' => 'アップロードに失敗しました。']);
+            }
+
+
+
             /* 拡張子存在チェック */
             if(!empty($extension)){
                 
-                /* 画像登録処理 */
-                $file_save = dirname(__FILE__, 2).'/'.'images/'; // アップロード対象のディレクトリを指定
-                //$file_path=dirname(__FILE__, 2).$file_save;
-                $file_tmp = $_FILES['file1']['tmp_name'];
-                $file_name = basename($_FILES['file1']['name']);
-                $file_save_path = dirname(__FILE__, 2) . '/images/' . $file_name; 
-                move_uploaded_file($file_tmp, $file_save_path); // アップロード処理
-                chmod($file_save_path,0664);
+                // /* 画像登録処理 */
+                // $file_save = dirname(__FILE__, 2).'/'.'images/'; // アップロード対象のディレクトリを指定
+                // //$file_path=dirname(__FILE__, 2).$file_save;
+                // $file_tmp = $_FILES['file1']['tmp_name'];
+                // $file_name = basename($_FILES['file1']['name']);
+                // $file_save_path = dirname(__FILE__, 2) . '/images/' . $file_name; 
+                // move_uploaded_file($file_tmp, $file_save_path); // アップロード処理
+                // chmod($file_save_path,0664);
+                
 
-                echo "success"; // jquery側にレスポンス
+                //echo "success"; // jquery側にレスポンス
 	
             } else {
                 
                 echo "fail"; // jquery側にレスポンス
                 
             }
-            $result = DatabaseHelper::insertImage(dirname(__FILE__, 2).$file_save,$_FILES['file1']['name'],$_FILES['file1']['type'],$_FILES['file1']['size'] );
-            // print_r($result);
+
+            $hash_for_shared_url = hash('sha256', uniqid(mt_rand(), true));
+            $hash_for_delete_url = hash('sha256', uniqid(mt_rand(), true));
+            $shared_url = '/' . $extension . '/' . $hash_for_shared_url;
+            $delete_url = '/' .  'delete' . '/' . $hash_for_delete_url;
+            $imagePathFromUploadDir = $subdirectory . '/' . $filename;
+            $result = DatabaseHelper::insertImage($imagePathFromUploadDir,$_FILES['file1']['name'],$_FILES['file1']['type'],$_FILES['file1']['size'],$shared_url,$delete_url );
+
+            if ($result) {
+                return new JSONRenderer(["success" => true, "shared_url" => $shared_url, "delete_url"=> $delete_url]);
+            } else {
+                return new JSONRenderer(["success" => false, "message" => "データベースの操作に失敗しました。"]);
+            }
             
-            return new HTMLRenderer('register-result', ["url"=>$result["url"]]);
+            //return new HTMLRenderer('register-result', ["url"=>$result["url"]]);
+            //return new JSONRenderer(['result'=>json_encode($result['url'])]);
             //return $result;
         }catch(Exception $e){
             return new HTMLRenderer('register-result', []);
 
         }
+    },
+    'getImage' => function(): HTMLRenderer{
+            $shared_url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $data = DatabaseHelper::getImageData($shared_url);
+
+            if (!$data) {
+                http_response_code(404);
+                return new HTMLRenderer('component/404', ['errormsg' => "Page not found"]);
+            }
+
+           // if(!DatabaseHelper::updateImageData($shared_url)) return new JSONRenderer(['success' => false, 'message' => 'データベースの操作に失敗しました。']);
+
+            $path = $data['file_path'];
+            $viewCount = $data['view_count'];
+            $mime = $data['mine_type'];
+
+            return new HTMLRenderer('register-result', ['path'=> $path, 'mime' => $mime ,'viewCount' => $viewCount]);
     },
     'show' => function (): HTTPRenderer {
         // 指定されたスニペットの表示ページ
@@ -133,12 +177,12 @@ return [
                 echo "fail"; // jquery側にレスポンス
                 
             }
-            $result = DatabaseHelper::insertImage(dirname(__FILE__, 2).$file_save,$_FILES['file1']['name'],$_FILES['file1']['type'],$_FILES['file1']['size'] );
+           // $result = DatabaseHelper::insertImage(dirname(__FILE__, 2).$file_save,$_FILES['file1']['name'],$_FILES['file1']['type'],$_FILES['file1']['size'] );
             // print_r($result);
             
             //return new HTMLRenderer('register-result', ["url"=>$result["url"]]);
 
-            return new JSONRenderer(['result'=>json_encode($result['url'])]);
+           // return new JSONRenderer(['result'=>json_encode($result['url'])]);
             //return $result;
         }catch(Exception $e){
             return new HTMLRenderer('register-result', []);

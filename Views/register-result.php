@@ -1,20 +1,13 @@
-<?php
-
-
-        // プロトコルを取得
-        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
-
-        // ホスト名を取得
-        $host = $_SERVER['HTTP_HOST'];
-        
-        
-        // 完全なURLを組み立てる
-        $linkUrl = $protocol . '://' . $host."/show?path=". $url;
-
-?>
-<div>
-    <?= $url ? 
-        '<p>Your text has been registered successfully! Link is below.</p>
-        <a href="' . htmlspecialchars($linkUrl) . '">' . htmlspecialchars($linkUrl) . '</a>' :
-        '<p>Registering your snippet was failed!</p>' ?>
-</div>
+<main class="container">
+    <h2 class="text-align-center mb-0"><a class="text-decoration-none" href="/">Pix Pocket</a></h2>
+    <div>
+        <div class="row center-xs mb-3">
+            <img src="/images/eye.svg" alt="eye image" width="25" , height="30" title="閲覧回数">
+            <p class="mb-0"><?= $viewCount . " Views" ?></p>
+        </div>
+        <div class="text-align-center">
+            <img class="dynamic-image" src=" <?= "/uploads/" . $path ?>" alt="uploaded image">
+        </div>
+    </div>
+</main>
+<script></script>
