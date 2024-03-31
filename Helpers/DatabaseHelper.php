@@ -230,4 +230,26 @@ class DatabaseHelper
         return $data;
 
     }     
+    public static function getSharedUrl(string $delete_url) : string | false {
+        $mysqli = new MySQLWrapper();
+        $stmt = $mysqli->prepare("SELECT url FROM images WHERE delete_url = ?");
+        $stmt->bind_param('s', $delete_url);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $data = $result->fetch_assoc();
+
+        if(!$data) return false;
+
+        return $data['url'];
+    }
+
+    public static function deleteImageData(string $shared_url) : bool {
+        $mysqli = new MySQLWrapper();
+        $stmt = $mysqli->prepare("DELETE FROM images WHERE url = ?");
+        $stmt-> bind_param('s', $shared_url);
+        $stmt->execute();
+        $rowsAffected = $stmt->affected_rows;
+
+        return $rowsAffected > 0;
+    }
 }

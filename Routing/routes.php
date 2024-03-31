@@ -127,6 +127,30 @@ return [
 
             return new HTMLRenderer('register-result', ['path'=> $path, 'mime' => $mime ,'viewCount' => $viewCount]);
     },
+    'delete' => function() : HTMLRenderer {
+            $delete_url = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+            $shared_url = DatabaseHelper::getSharedUrl($delete_url);
+
+            if (!$shared_url) {
+                http_response_code(404);
+                return new HTMLRenderer('component/404', ['errormsg' => "Page not found"]);
+            }
+
+            return new HTMLRenderer('deleteImage', ['shared_url' => $shared_url]);
+    },
+    'delete2' => function () : JSONRenderer {
+            $json = file_get_contents("php://input");
+            $shared_url = json_decode($json, true)['shared_url'];
+            $imagePath = DatabaseHelper::getImageData($shared_url)['path'];
+            $deleteFromDBresult = DatabaseHelper::deleteImageData($shared_url);
+
+            if (!$deleteFromDBresult) return new JSONRenderer(["success" => false, "message" => "データベースの操作に失敗しました"]);
+
+            $deleteFromStorageResult = unlink('./uploads/' . $imagePath);
+            if (!$deleteFromStorageResult)return new JSONRenderer(["success" => false, "message" => "画像の削除に失敗しました。"]);
+
+            return new JSONRenderer(["success" => true]);
+    },
     'show' => function (): HTTPRenderer {
         // 指定されたスニペットの表示ページ
 

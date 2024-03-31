@@ -18,7 +18,9 @@ if($path2 == 'png' || $path2 == 'jpeg' || $path2 == 'gif'){
 }
 //$path2= explode('/',$path)[1];//指定文字で区切る。連想配列にする。
 //$method= $SERVER['REQUEST_METHOD'];
-
+if($path2== 'delete'){
+    $path=$path2;
+}
 if (preg_match('/\.(?:png|jpg|jpeg|gif|css|js|svg)$/', $path)) {
     // パスにマッチする静的ファイルが存在するかチェック
     $file=__DIR__.'/'.$path;
