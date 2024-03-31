@@ -141,7 +141,7 @@ return [
     'delete2' => function () : JSONRenderer {
             $json = file_get_contents("php://input");
             $shared_url = json_decode($json, true)['shared_url'];
-            $imagePath = DatabaseHelper::getImageData($shared_url)['path'];
+            $imagePath = DatabaseHelper::getImageData($shared_url)['file_path'];
             $deleteFromDBresult = DatabaseHelper::deleteImageData($shared_url);
 
             if (!$deleteFromDBresult) return new JSONRenderer(["success" => false, "message" => "データベースの操作に失敗しました"]);
